@@ -1,5 +1,6 @@
 const { verifyToken } = require('../utils/jwt');
 const prisma = require('../config/database');
+const { assertDocumentAccess } = require('../services/document.service');
 
 const documentRooms = new Map(); // docId -> Set of userIds
 const saveTimers = new Map();   // docId -> timeout handle
@@ -31,28 +32,13 @@ const setupDocumentSockets = (io) => {
 
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id} (user: ${socket.userId})`);
+    socket.docPermissions = {};
 
     // Join document room
     socket.on('join-document', async ({ docId }) => {
       try {
-        const doc = await prisma.document.findUnique({
-          where: { id: docId },
-          include: { workspace: { include: { members: true } } },
-        });
-
-        if (!doc) return socket.emit('error', { message: 'Document not found' });
-
-        const isOwner = doc.workspace.members.some(
-          (m) => m.userId === socket.userId && m.role === 'owner'
-        );
-
-        const isCollaborator = await prisma.documentCollaborator.findUnique({
-          where: { documentId_userId: { documentId: docId, userId: socket.userId } },
-        });
-
-        if (!isOwner && !isCollaborator) {
-          return socket.emit('error', { message: 'Access denied' });
-        }
+        const { doc, canEdit } = await assertDocumentAccess(docId, socket.userId);
+        socket.docPermissions[docId] = canEdit;
 
         socket.join(docId);
 
@@ -83,6 +69,10 @@ const setupDocumentSockets = (io) => {
 
     // Broadcast document changes to other users in the room and debounce-save to DB
     socket.on('document-change', ({ docId, content, title }) => {
+      if (!socket.docPermissions[docId]) {
+        return socket.emit('error', { message: 'You have view-only access to this document.' });
+      }
+
       socket.to(docId).emit('document-updated', {
         content,
         title,

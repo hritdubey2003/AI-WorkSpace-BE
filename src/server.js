@@ -17,7 +17,7 @@ const httpServer = http.createServer(app);
 // Socket.io setup
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: process.env.CLIENT_URL ,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -26,7 +26,7 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: process.env.CLIENT_URL ,
     credentials: true,
   })
 );
@@ -50,11 +50,11 @@ setupDocumentSockets(io);
 // Error handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 Socket.io ready`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Socket.io ready`);
 });
 
 module.exports = { app, io };

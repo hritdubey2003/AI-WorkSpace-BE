@@ -1,12 +1,14 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const { generateToken } = require('../utils/jwt');
+const { ERROR_MESSAGES } = require('../constants/errorMessages');
 
 const register = async ({ name, email, password }) => {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    const err = new Error('Email already registered');
+    const err = new Error(ERROR_MESSAGES.AUTH.EMAIL_TAKEN);
     err.status = 409;
+    err.code = 'EMAIL_TAKEN';
     throw err;
   }
 
@@ -24,15 +26,17 @@ const register = async ({ name, email, password }) => {
 const login = async ({ email, password }) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    const err = new Error('Invalid credentials');
+    const err = new Error(ERROR_MESSAGES.AUTH.INVALID_CREDENTIALS);
     err.status = 401;
+    err.code = 'INVALID_CREDENTIALS';
     throw err;
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    const err = new Error('Invalid credentials');
+    const err = new Error(ERROR_MESSAGES.AUTH.INVALID_CREDENTIALS);
     err.status = 401;
+    err.code = 'INVALID_CREDENTIALS';
     throw err;
   }
 

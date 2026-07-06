@@ -1,10 +1,15 @@
 const documentService = require('../services/document.service');
+const { ERROR_MESSAGES } = require('../constants/errorMessages');
 
 const createDocument = async (req, res, next) => {
   try {
     const { title, workspaceId } = req.body;
-    if (!workspaceId)
-      return res.status(400).json({ message: 'workspaceId is required' });
+    if (!workspaceId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'WORKSPACE_ID_REQUIRED', message: ERROR_MESSAGES.DOCUMENT.WORKSPACE_ID_REQUIRED },
+      });
+    }
 
     const doc = await documentService.createDocument({
       title: title || 'Untitled',
@@ -23,6 +28,15 @@ const getDocuments = async (req, res, next) => {
       req.params.workspaceId,
       req.user.id
     );
+    res.json(docs);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getSharedDocuments = async (req, res, next) => {
+  try {
+    const docs = await documentService.getSharedDocuments(req.user.id);
     res.json(docs);
   } catch (err) {
     next(err);
@@ -65,13 +79,19 @@ const deleteDocument = async (req, res, next) => {
 
 const shareDocument = async (req, res, next) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'email is required' });
+    const { email, role } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'EMAIL_REQUIRED', message: ERROR_MESSAGES.DOCUMENT.EMAIL_REQUIRED },
+      });
+    }
 
     const collaborator = await documentService.shareDocument(
       req.params.id,
       req.user.id,
-      email
+      email,
+      role
     );
     res.status(201).json(collaborator);
   } catch (err) {
@@ -86,6 +106,15 @@ const unshareDocument = async (req, res, next) => {
       req.user.id,
       req.params.userId
     );
+    res.json({ message: 'Access removed' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const leaveSharedDocument = async (req, res, next) => {
+  try {
+    await documentService.leaveSharedDocument(req.params.id, req.user.id);
     res.json({ message: 'Access removed' });
   } catch (err) {
     next(err);
@@ -107,10 +136,12 @@ const getCollaborators = async (req, res, next) => {
 module.exports = {
   createDocument,
   getDocuments,
+  getSharedDocuments,
   getDocument,
   updateDocument,
   deleteDocument,
   shareDocument,
   unshareDocument,
+  leaveSharedDocument,
   getCollaborators,
 };

@@ -5,6 +5,14 @@ const KNOWN_MESSAGES = new Set(
 );
 
 const errorHandler = (err, req, res, next) => {
+  // Always log server-side so production failures show up in hosting logs (Vercel/Render)
+  console.error('[ErrorHandler]', req.method, req.originalUrl, err.code || '', err.message);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(err.stack);
+  }
+
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ message: err.message });
   if (process.env.NODE_ENV !== 'production') {
     console.error('[ErrorHandler]', err.message);
   }

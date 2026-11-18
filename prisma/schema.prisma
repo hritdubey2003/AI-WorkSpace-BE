@@ -30,15 +30,21 @@ model Workspace {
 }
 
 model WorkspaceMember {
-  id          String    @id @default(uuid())
-  role        String    @default("member") // owner | member
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String        @id @default(uuid())
+  role        WorkspaceRole @default(EDITOR)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String
-  joinedAt    DateTime  @default(now())
+  joinedAt    DateTime      @default(now())
 
   @@unique([userId, workspaceId])
+}
+
+enum WorkspaceRole {
+  OWNER
+  EDITOR
+  VIEWER
 }
 
 model Document {
@@ -56,12 +62,18 @@ model Document {
 }
 
 model DocumentCollaborator {
-  id         String   @id @default(uuid())
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id         String           @id @default(uuid())
+  document   Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String
-  createdAt  DateTime @default(now())
+  role       CollaboratorRole @default(EDITOR)
+  createdAt  DateTime         @default(now())
 
   @@unique([documentId, userId])
+}
+
+enum CollaboratorRole {
+  EDITOR
+  VIEWER
 }

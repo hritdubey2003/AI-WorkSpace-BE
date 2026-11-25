@@ -50,11 +50,16 @@ setupDocumentSockets(io);
 // Error handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT;
+// On Vercel the platform accepts connections itself and calls the exported server,
+// so only start listening when running anywhere else (local dev, Render, etc.).
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT;
+  httpServer.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Socket.io ready`);
+  });
+}
 
-httpServer.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Socket.io ready`);
-});
-
-module.exports = { app, io };
+// Vercel requires the default export to be a function or an HTTP server.
+// Exporting the HTTP server (not just `app`) keeps Socket.IO reachable too.
+module.exports = httpServer;
